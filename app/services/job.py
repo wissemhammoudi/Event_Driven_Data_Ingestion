@@ -7,7 +7,6 @@ settings = Settings()
 airbyte_username = settings.USERNAME
 airbyte_password = settings.PASSWORD
 airbyte_url = settings.URL
-
 class JobService:
     def __init__(self):
         self.client = airbyte_api.AirbyteAPI(
@@ -66,7 +65,7 @@ class JobService:
             return None
 
     # List recent jobs
-def list_jobs(
+    def list_jobs(
         self,
         connection_id: Optional[str] = None,
         created_at_start: Optional[datetime] = None,
