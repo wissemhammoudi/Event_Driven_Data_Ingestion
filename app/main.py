@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-import routers.topic, routers.producer,routers.consumer,routers.workspace,routers.sources,routers.destination,routers.connection
+import routers.topic, routers.producer,routers.consumer,routers.workspace,routers.sources,routers.destination,routers.connection,routers.job
 
 
 
@@ -14,6 +14,8 @@ app.include_router(routers.workspace.router)
 app.include_router(routers.sources.router)
 app.include_router(routers.destination.router)
 app.include_router(routers.connection.router)
+app.include_router(routers.job.router)
+
 
 
 
