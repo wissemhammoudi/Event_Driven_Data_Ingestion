@@ -1,0 +1,67 @@
+networks:
+  my_network:
+    driver: bridge
+
+services:
+  broker:
+    image: apache/kafka:latest
+    container_name: broker
+    ports:
+      - "9092:9092" 
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'          # Limit to 2 CPUs
+          memory: 8G           # Limit to 4 GB memory
+        reservations:
+          cpus: '2.0'          # Reserve 1 CPU for this service
+          memory: 4G         
+    environment:
+      # Unique node ID for this broker
+      KAFKA_NODE_ID: 1
+      # Kafka node roles: can be broker and/or controller.
+      KAFKA_PROCESS_ROLES: broker,controller
+      # Define the internal listeners with a listener name and port.
+      # "CLIENT" is for client communication (producers/consumers)
+      # "CTRL" is used for controller communications (e.g. leader election)
+      KAFKA_LISTENERS: CLIENT://broker:9092,CTRL://localhost:9093
+      # Advertised listeners tell clients (inside or outside Docker) how to connect.
+      # Here, we use the "CLIENT" listener name, and the advertised hostname should be resolvable on the Docker network.
+      # Since the container name is "broker", we use that as the hostname.
+      KAFKA_ADVERTISED_LISTENERS: CLIENT://broker:9092
+      # Define which listener is used for controller communications.
+      KAFKA_CONTROLLER_LISTENER_NAMES: CTRL
+      # Define the inter-broker communication listener.
+      KAFKA_INTER_BROKER_LISTENER_NAME: CLIENT
+      # Map listener names to security protocols. Both "CLIENT" and "CTRL" use PLAINTEXT.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:PLAINTEXT,CTRL:PLAINTEXT
+      # Define controller quorum voters: broker ID 1 on port 9093 for controller tasks.
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+
+      # Set replication factor for the internal offsets topic.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      # Set replication factor for the transaction state log.
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+      # Set the minimum number of in-sync replicas for the transaction state log.
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # Consumer group rebalance delay (0 means immediate rebalancing).
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+      # Default number of partitions for any new topics created.
+      KAFKA_NUM_PARTITIONS: 3
+      
+  application:
+    build: ./app
+    volumes:
+      - ./app:/app
+    ports:
+      - "8010:8010" 
+    depends_on:
+      - broker
+
+    
+volumes:
+  postgres_data:  

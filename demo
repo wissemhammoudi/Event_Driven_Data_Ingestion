@@ -1,0 +1,32 @@
+configuration source
+
+{
+  "host": "host.docker.internal",
+  "port": 5432,
+  "database": "mydatabase",
+  "schemas": ["public"],
+  "username": "public", 
+  "password": "password",
+  "ssl_mode": {
+    "mode": "disable"
+  },
+  "replication_method": {
+    "method": "Xmin" 
+  },
+  "tunnel_method": {
+    "tunnel_method": "NO_TUNNEL"
+  },
+  "sourceType": "postgres"
+}
+
+
+configuration destination
+
+{
+    "host": "host.docker.internal",
+    "port": 5433,
+    "database": "mydatabase",
+    "username": "user",
+    "password": "password",
+    "schema": "public"
+}
