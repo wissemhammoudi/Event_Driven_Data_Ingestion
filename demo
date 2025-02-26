@@ -1,3 +1,8 @@
+
+
+workshpaceid default =12112ce2-5757-49b0-b1f5-29835302a67d
+
+
 configuration source
 
 {
@@ -23,10 +28,36 @@ configuration source
 configuration destination
 
 {
-    "host": "host.docker.internal",
-    "port": 5433,
-    "database": "mydatabase",
-    "username": "user",
-    "password": "password",
-    "schema": "public"
+  "host": "host.docker.internal",
+  "port": 5433,
+  "database": "mydatabase",
+  "username": "user",
+  "password": "password",
+  "schema": "public",
+  "ssl_mode": {
+    "mode": "disable"
+  },
+  "tunnel_method": {
+    "tunnel_method": "NO_TUNNEL"
+  }
+}
+#operation 
+{
+  "name": "postgress to postgress",
+  "source_id": "2edeabf8-217d-4a3b-a4e5-90bdf0b793c1",
+  "destination_id": "2f8f6a23-bffc-421c-9a4c-ca97a64f0445",
+  "workspace_id": "12112ce2-5757-49b0-b1f5-29835302a67d",
+  "configurations": [
+    {
+      "name": "orders_stream",
+      "cursor_field": ["updated_at"],
+      "mappers": [],
+      "primary_key": [["id"]],
+      "selected_fields": []
+    }
+  ],
+  "schedule": {
+    "schedule_type": "cron",
+    "cron_expression": "0 0 * * * ?"
+  }
 }

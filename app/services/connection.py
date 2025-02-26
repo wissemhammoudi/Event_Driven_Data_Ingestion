@@ -21,39 +21,68 @@ class ConnectionService:
 
     def create_connection(self, name: str, source_id: str, destination_id: str, workspace_id: str, configuration: list, schedule: dict):
         """
-        Create a connection.
-        - `configuration`: a list of dictionaries where each dict represents a stream's configuration.
-          For example: [{"name": "example_stream", "sync_mode": "full_refresh_overwrite"}]
-        - `schedule`: a dict for the schedule configuration, e.g. {"schedule_type": "manual"}
+        Create a connection in Airbyte.
+        
+        - `configuration`: A list of dictionaries, each representing a stream's configuration.
+        Example:
+        ```json
+        [
+            {
+                "name": "example_stream",
+                "sync_mode": "incremental_append",
+                "cursor_field": ["updated_at"],
+                "primary_key": [["id"]]
+            }
+        ]
+        ```
+        
+        - `schedule`: A dictionary specifying the schedule configuration.
+        Example: `{"schedule_type": "cron", "cron_expression": "0 0 * * *"}`.
         """
         try:
-            # Convert list of configuration dicts to a list of StreamConfiguration objects
             stream_configs = []
+
             for conf in configuration:
-                stream_configs.append(
-                    models.StreamConfiguration(
-                        name=conf.get("name"),
-                        sync_mode=conf.get("sync_mode")
-                    )
+                # Validate and map sync mode
+                sync_mode = conf.get("sync_mode", "full_refresh_overwrite").upper()
+                if sync_mode not in models.ConnectionSyncModeEnum.__members__:
+                    raise ValueError(f"Invalid sync_mode: {sync_mode}")
+
+                # Build StreamConfiguration object
+                stream_config = models.StreamConfiguration(
+                    name=conf["name"],  # Required field
+                    sync_mode=models.ConnectionSyncModeEnum[sync_mode],
+                    cursor_field=conf.get("cursor_field", []),  # Optional, required for incremental sync
+                    primary_key=conf.get("primary_key", [])  # Optional, required for deduped sync
                 )
-            # Create the connection request.
-            # (Note: The SDK might expect a different model for a full sync catalog;
-            # adjust based on your actual Airbyte deployment.)
+                stream_configs.append(stream_config)
+
+            # Validate and map schedule type
+            schedule_type = schedule.get("schedule_type", "manual").upper()
+            if schedule_type not in models.ScheduleTypeEnum.__members__:
+                raise ValueError(f"Invalid schedule_type: {schedule_type}")
+
+            schedule_obj = models.AirbyteAPIConnectionSchedule(
+                schedule_type=models.ScheduleTypeEnum[schedule_type],
+                cron_expression=schedule.get("cron_expression") if schedule_type == "CRON" else None
+            )
+
+            # Create the connection request
             req = models.ConnectionCreateRequest(
                 name=name,
                 source_id=source_id,
                 destination_id=destination_id,
                 workspace_id=workspace_id,
-                configurations=models.StreamConfiguration(stream_configs),
-                schedule=models.AirbyteAPIConnectionSchedule(
-                    schedule_type=schedule.get("schedule_type")
-                )
+                configurations=stream_configs,  # Corrected assignment
+                schedule=schedule_obj  # Corrected schedule handling
             )
+
+            # Send request
             response = self.client.connections.create_connection(request=req)
             return response.connection_response
+
         except Exception as e:
             return {"error": f"Failed to create connection: {str(e)}"}
-
     def list_connections(self, workspace_id: str):
         try:
             response = self.client.connections.list_connections(

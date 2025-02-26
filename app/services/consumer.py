@@ -1,12 +1,14 @@
 from confluent_kafka import Consumer, KafkaError
 import threading
+from .job import JobService
+
 
 class KafkaConsumerService:
-    def __init__(self, kafka_broker: str):
+    def __init__(self, kafka_broker: str, job_service: JobService):
         self.kafka_broker = kafka_broker
         self.consumers = {}
-
-    def consume_messages(self, consumer_id: str, kafka_topic: str):
+        self.job_service = job_service
+    def consume_messages(self, consumer_id: str, kafka_topic: str,connection_id:str,job_type:str):
         """Consumes messages from the specified Kafka topic."""
         consumer = self.consumers[consumer_id]['consumer']
         consumer.subscribe([kafka_topic])
@@ -26,23 +28,25 @@ class KafkaConsumerService:
                     else:
                         print(f"❌ Error consuming message: {msg.error()}")
                 else:
-                    self.process_message(msg)
+                    self.process_message(msg,connection_id,job_type)
         except Exception as e:
             print(f"❌ Exception in consumer loop: {e}")
         finally:
             consumer.close()
             print(f"❌ Kafka consumer '{consumer_id}' stopped.")
 
-    def process_message(self, msg):
+    def process_message(self, msg,connection_id,job_type, ):
         """Process and store the received Kafka message (string)."""
         try:
             # The message is expected to be a string, not JSON
             message = msg.value().decode('utf-8')
             print(f"✅ Received message: {message}")
+            sync_response=self.job_service.start_job(connection_id=connection_id, job_type=job_type)
+            print(f"🔄 Airbyte sync triggered: {sync_response}")
         except Exception as e:
             print(f"❌ Error processing message: {e}")
 
-    def start_consumer(self, consumer_id: str, kafka_topic: str):
+    def start_consumer(self, consumer_id: str, kafka_topic: str,connection_id,job_type):
         """Starts a new Kafka consumer for the specified topic."""
         if consumer_id in self.consumers:
             return {"message": f"Consumer with ID '{consumer_id}' is already running."}
@@ -54,7 +58,7 @@ class KafkaConsumerService:
         })
         self.consumers[consumer_id] = {'consumer': consumer, 'running': True}
 
-        thread = threading.Thread(target=self.consume_messages, args=(consumer_id, kafka_topic), daemon=True)
+        thread = threading.Thread(target=self.consume_messages, args=(consumer_id, kafka_topic,connection_id,job_type), daemon=True)
         self.consumers[consumer_id]['thread'] = thread
         thread.start()
 
