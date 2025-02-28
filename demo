@@ -1,6 +1,15 @@
 
 
-workshpaceid default =12112ce2-5757-49b0-b1f5-29835302a67d
+
+debezeuim :
+cd /c/Users/DELL/Desktop/project/Event_Driven_Data_Ingestion  
+
+curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json"   http://localhost:8083/connectors/ -d @register-postgres.json
+
+
+
+
+
 
 
 configuration source
@@ -10,7 +19,7 @@ configuration source
   "port": 5432,
   "database": "mydatabase",
   "schemas": ["public"],
-  "username": "public", 
+  "username": "user", 
   "password": "password",
   "ssl_mode": {
     "mode": "disable"
@@ -59,5 +68,24 @@ configuration destination
   "schedule": {
     "schedule_type": "cron",
     "cron_expression": "0 0 * * * ?"
+  }
+}
+
+{
+  "name": "postgress to postgress",
+  "source_id": "b7baced0-95e5-4449-bfdf-250f482f6155",
+  "destination_id": "e400d224-f960-443c-b178-a38efcf15002",
+  "workspace_id": "25a0646b-88ae-427c-b30d-595ed66a32a9",
+  "configurations": [
+    {
+      "name": "users_stream",
+      "syncMode": "incremental_append",
+      "cursorField": ["updated_at"], 
+      "primaryKey": [["id"]]
+     
+    }
+  ],
+  "schedule": {
+    "schedule_type": "manual"
   }
 }

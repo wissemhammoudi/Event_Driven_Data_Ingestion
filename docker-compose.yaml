@@ -1,67 +1,78 @@
-networks:
-  my_network:
-    driver: bridge
+version: '3.8'
+
+
 
 services:
   broker:
     image: apache/kafka:latest
     container_name: broker
     ports:
-      - "9092:9092" 
+      - "9092:9092"
     deploy:
       resources:
         limits:
-          cpus: '4.0'          # Limit to 2 CPUs
-          memory: 8G           # Limit to 4 GB memory
+          cpus: '4.0'
+          memory: 8G
         reservations:
-          cpus: '2.0'          # Reserve 1 CPU for this service
-          memory: 4G         
+          cpus: '2.0'
+          memory: 4G
     environment:
-      # Unique node ID for this broker
       KAFKA_NODE_ID: 1
-      # Kafka node roles: can be broker and/or controller.
       KAFKA_PROCESS_ROLES: broker,controller
-      # Define the internal listeners with a listener name and port.
-      # "CLIENT" is for client communication (producers/consumers)
-      # "CTRL" is used for controller communications (e.g. leader election)
-      KAFKA_LISTENERS: CLIENT://broker:9092,CTRL://localhost:9093
-      # Advertised listeners tell clients (inside or outside Docker) how to connect.
-      # Here, we use the "CLIENT" listener name, and the advertised hostname should be resolvable on the Docker network.
-      # Since the container name is "broker", we use that as the hostname.
+      KAFKA_LISTENERS: CLIENT://broker:9092,CTRL://broker:9093
       KAFKA_ADVERTISED_LISTENERS: CLIENT://broker:9092
-      # Define which listener is used for controller communications.
       KAFKA_CONTROLLER_LISTENER_NAMES: CTRL
-      # Define the inter-broker communication listener.
       KAFKA_INTER_BROKER_LISTENER_NAME: CLIENT
-      # Map listener names to security protocols. Both "CLIENT" and "CTRL" use PLAINTEXT.
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:PLAINTEXT,CTRL:PLAINTEXT
-      # Define controller quorum voters: broker ID 1 on port 9093 for controller tasks.
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-
-      # Set replication factor for the internal offsets topic.
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-      # Set replication factor for the transaction state log.
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-
-      # Set the minimum number of in-sync replicas for the transaction state log.
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-
-      # Consumer group rebalance delay (0 means immediate rebalancing).
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-
-      # Default number of partitions for any new topics created.
       KAFKA_NUM_PARTITIONS: 3
-      
+
+
+  postgres:
+    image: postgres:16 
+    container_name: postgres
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  connect:
+    image: debezium/connect:2.1
+    container_name: connect
+    depends_on:
+      - broker
+      - postgres
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: broker:9092
+      GROUP_ID: connect-cluster
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_PLUGIN_PATH: /kafka/connect
+
   application:
     build: ./app
+    container_name: application
     volumes:
       - ./app:/app
     ports:
-      - "8010:8010" 
+      - "8010:8010"
     depends_on:
       - broker
+      - postgres
 
-    
+
 volumes:
-  postgres_data:  
+  postgres_data:

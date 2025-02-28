@@ -1,22 +1,27 @@
 from fastapi import APIRouter, Depends
-from services.consumer import KafkaConsumerService
 from core.config import Settings
+from services.consumer import KafkaConsumerService
 from services.job import JobService
+from functools import lru_cache
 
 router = APIRouter(prefix="/consumer", tags=["consumer"])
 
-# Dependency to get Settings
-def get_settings():
+def get_settings() -> Settings:
     return Settings()
 
-# Dependency to get KafkaConsumerService
-def get_kafka_service(
-    settings: Settings = Depends(get_settings),
-    job_service: JobService = Depends(JobService)
-):
+@lru_cache()
+def get_kafka_service_singleton() -> KafkaConsumerService:
+    settings = get_settings()
+    # Depending on your JobService implementation, you might need to adjust this.
+    job_service = JobService()  
     return KafkaConsumerService(settings.KAFKA_BROKER, job_service)
 
-@router.post("/start_consumer/", response_model=None)
+def get_kafka_service(
+    kafka_service: KafkaConsumerService = Depends(get_kafka_service_singleton)
+) -> KafkaConsumerService:
+    return kafka_service
+
+@router.post("/start", response_model=dict)
 def start_consumer(
     kafka_topic: str,
     consumer_id: str,
@@ -27,7 +32,7 @@ def start_consumer(
     response = kafka_service.start_consumer(consumer_id, kafka_topic, connection_id, job_type)
     return response
 
-@router.post("/stop/")
+@router.post("/stop", response_model=dict)
 def stop_consumer(
     consumer_id: str,
     kafka_service: KafkaConsumerService = Depends(get_kafka_service)
@@ -35,7 +40,7 @@ def stop_consumer(
     response = kafka_service.stop_consumer(consumer_id)
     return response
 
-@router.get("/list/")
+@router.get("/list", response_model=dict)
 def list_consumers(
     kafka_service: KafkaConsumerService = Depends(get_kafka_service)
 ):

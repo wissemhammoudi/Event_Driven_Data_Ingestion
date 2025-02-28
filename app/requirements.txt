@@ -1,8 +1,9 @@
 fastapi 
 uvicorn[standard]
 python-dotenv
-confluent-kafka
+confluent-kafka==2.8.0
 fastavro
 pydantic
+httpx
 pydantic-settings
-airbyte-api==0.50.0
+airbyte-api==0.52.2
