@@ -75,9 +75,11 @@ class SourceService:
             response = self.client.sources.list_sources(
                 request=api.ListSourcesRequest(workspace_ids=[workspace_id])
             )
+            print("Full Response:", response)
             return response.sources_response.data if response.sources_response else []
         except Exception as e:
             return {"error": f"Failed to list sources: {str(e)}"}
+
 
     # 📌 Get a Source by ID
     def get_source(self, source_id: str):

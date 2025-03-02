@@ -56,58 +56,59 @@ class KafkaProducerService:
         }
         producer_thread.start()
         return {"message": f"Started producer '{producer_id}' for Kafka topic '{kafka_topic}'."}
-def start_producer_Debezium(self,connector_url: str, connector_payload: dict):
-    """
-    Creates a Debezium connector by POSTing the provided payload, retrieves its configuration to construct the
-    Kafka topic name, and starts a producer using that topic.
-    
-    Parameters:
-        producer_id (str): Unique identifier for the producer.
-        connector_url (str): Base URL for the connector API (e.g., "http://localhost:8083/connectors").
-        connector_payload (dict): JSON payload to create the connector.
-        sending_mode (str): Sending mode for the producer (default is "synchronous").
-    
-    Returns:
-        dict: A message indicating success or error details.
-    """
-    try:
-        # Create the Debezium connector (similar to executing the curl command)
-        create_response = httpx.post(
-            connector_url,
-            headers={"Content-Type": "application/json"},
-            json=connector_payload,
-            timeout=5.0
-        )
-        create_response.raise_for_status()
+    def start_producer_Debezium(self, connector_url: str="http://host.docker.internal:8083/connectors", connector_payload: dict= {}):
+            """
+            Creates a Debezium connector by POSTing the provided payload, retrieves its configuration to construct the
+            Kafka topic name, and starts a producer using that topic.
+            
+            Parameters:
+                connector_url (str): Base URL for the connector API (e.g., "http://localhost:8083/connectors").
+                connector_payload (dict): JSON payload to create the connector.
+            
+            Returns:
+                dict: A message indicating success or error details.
+            """
+            try:
+                # Create the Debezium connector
+                create_response = httpx.post(
+                    connector_url,
+                    headers={"Content-Type": "application/json", "Accept": "application/json"},
+                    json=connector_payload,
+                    timeout=5.0
+                )
+                create_response.raise_for_status()
 
-        # The connector is now created automatically.
-        # Retrieve the connector's configuration using its name.
-        connector_name = connector_payload.get("name")
-        if not connector_name:
-            return {"error": "Connector payload must include a 'name' key."}
+                # Ensure connector name is in payload
+                connector_name = connector_payload.get("name")
+                if not connector_name:
+                    return {"error": "Connector payload must include a 'name' key."}
 
-        config_url = f"{connector_url}/{connector_name}/config"
-        config_response = httpx.get(config_url, timeout=5.0)
-        config_response.raise_for_status()
-        config = config_response.json()
+                # Retrieve connector config
+                config_url = f"{connector_url}/{connector_name}/config"
+                config_response = httpx.get(config_url, timeout=5.0)
+                config_response.raise_for_status()
+                config = config_response.json()
 
-        # Derive Kafka topic name from the configuration.
-        # Debezium typically uses a topic naming format of: <topic.prefix>.<schema>.<table>
-        topic_prefix = config.get("topic.prefix", "default_prefix")
-        # Try both "table.whitelist" and "table.include.list" if provided.
-        table_list = config.get("table.whitelist") or config.get("table.include.list")
-        if table_list:
-            # If multiple tables are specified, use the first one.
-            table = table_list.split(",")[0].strip()
-        else:
-            table = "default_table"
+                # Extract topic prefix and table name
+                topic_prefix = config.get("topic.prefix", "default_prefix")
 
-        kafka_topic = f"{topic_prefix}.{table}"
+                table_list = config.get("table.whitelist") or config.get("table.include.list")
+                if table_list:
+                    table = table_list.split(",")[0].strip()  # Get the first table in the list
+                else:
+                    table = "default_table"
 
-        # Start the producer using the derived topic.
-        return {"result":f"the  producer is working in this topic name {kafka_topic}"}
-    except Exception as e:
-        return {"error": f"Error creating Debezium connector: {str(e)}"}
+                kafka_topic = f"{topic_prefix}.{table}"
+
+                return {"result": f"The producer is working on topic: {kafka_topic}"}
+
+            except httpx.HTTPStatusError as e:
+                return {"error": f"HTTP error occurred: {e.response.text}"}
+            except httpx.RequestError as e:
+                return {"error": f"Request failed: {str(e)}"}
+            except Exception as e:
+                return {"error": f"Unexpected error: {str(e)}"}
+
 
     def stop_producer(self, producer_id: str):
         """Stops the Kafka producer with the given producer_id."""
