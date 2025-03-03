@@ -13,7 +13,6 @@ class ConnectionCreateSchema(BaseModel):
     name: str
     source_id: str
     destination_id: str
-    workspace_id: str
     # List of stream configuration dictionaries.
     configurations: List[dict]
     # Schedule configuration dictionary.
@@ -25,7 +24,6 @@ def create_connection(request: ConnectionCreateSchema, service: ConnectionServic
         name=request.name,
         source_id=request.source_id,
         destination_id=request.destination_id,
-        workspace_id=request.workspace_id,
         configuration=request.configurations,
         schedule=request.schedule
     )

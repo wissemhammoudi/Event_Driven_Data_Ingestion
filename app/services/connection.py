@@ -19,7 +19,7 @@ class ConnectionService:
             )
         )
 
-    def create_connection(self, name: str, source_id: str, destination_id: str, workspace_id: str, configuration: list, schedule: dict):
+    def create_connection(self, name: str, source_id: str, destination_id: str, configuration: list, schedule: dict):
         """
         Create a connection in Airbyte.
 
@@ -73,7 +73,6 @@ class ConnectionService:
                 name=name,
                 source_id=source_id,
                 destination_id=destination_id,
-                workspace_id=workspace_id,
                 configurations=models.StreamConfigurations(streams=stream_configs),  # Corrected assignment
                 schedule=schedule_obj  # Corrected schedule handling
             )

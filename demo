@@ -8,6 +8,13 @@ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" 
 
 
 
+#table created 
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 
 
@@ -51,41 +58,22 @@ configuration destination
   }
 }
 #operation 
-{
-  "name": "postgress to postgress",
-  "source_id": "2edeabf8-217d-4a3b-a4e5-90bdf0b793c1",
-  "destination_id": "2f8f6a23-bffc-421c-9a4c-ca97a64f0445",
-  "workspace_id": "12112ce2-5757-49b0-b1f5-29835302a67d",
-  "configurations": [
-    {
-      "name": "orders_stream",
-      "cursor_field": ["updated_at"],
-      "mappers": [],
-      "primary_key": [["id"]],
-      "selected_fields": []
-    }
-  ],
-  "schedule": {
-    "schedule_type": "cron",
-    "cron_expression": "0 0 * * * ?"
-  }
-}
+
 
 {
-  "name": "postgress to postgress",
-  "source_id": "b7baced0-95e5-4449-bfdf-250f482f6155",
-  "destination_id": "e400d224-f960-443c-b178-a38efcf15002",
-  "workspace_id": "25a0646b-88ae-427c-b30d-595ed66a32a9",
+  "name": "postgress to postgress 1",
+  "source_id": "d986d17b-0256-40f5-bc1a-e0bf37a6fdcb",
+  "destination_id": "d675835e-33f1-42df-8368-ab0cafce6ae8",
   "configurations": [
     {
-      "name": "users_stream",
+      "name": "users",
       "syncMode": "incremental_append",
-      "cursorField": ["updated_at"], 
       "primaryKey": [["id"]]
      
     }
   ],
   "schedule": {
-    "schedule_type": "manual"
+    "schedule_type": "cron",
+    "cron_expression": "0 0 * * * ?"
   }
 }
