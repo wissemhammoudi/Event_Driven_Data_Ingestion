@@ -6,4 +6,4 @@ fastavro
 pydantic
 httpx
 pydantic-settings
-airbyte-api==0.50docker.0
+airbyte-api==0.50.0

@@ -1,15 +1,19 @@
 {
-    "name": "inventory-connector",
+    "name": "my-postgres-connector",
     "config": {
-        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
-        "tasks.max": "1",
-        "database.hostname": "postgres",
-        "database.port": "5432",
-        "database.user": "user",
-        "database.password": "password",
-        "database.dbname": "mydatabase",
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+      "tasks.max": "10",
+      "database.hostname": "postgres",
+      "database.port": "5432",
+      "database.user": "debezium",
+      "database.password": "password",
+      "database.dbname": "mydatabase",
         "topic.prefix": "dbserver1",
-        "schema.include.list": "public",
-        "plugin.name": "pgoutput"
+          "schema.include.list": "public",
+      "publication.autocreate.mode": "filtered",
+      "table.include.list": "public.choices, public.topics, public.payments",
+      "plugin.name": "pgoutput",
+      "snapshot.mode": "initial"
     }
-}
+  }
+  
