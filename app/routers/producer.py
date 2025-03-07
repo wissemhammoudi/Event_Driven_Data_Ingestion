@@ -33,6 +33,20 @@ def start_producer(connector_url: str = "http://host.docker.internal:8083/connec
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+@router.get("/list/Debezium/")
+def list_debeziumConnectors(connector_url: str = "http://host.docker.internal:8083/connectors"):
+    """
+    Lists all active debezium connectors.
+    """
+    try:
+        # Ensure URL has protocol
+        if not connector_url.startswith(('http://', 'https://')):
+            connector_url = f"http://{connector_url}"
+        response = producer_service.list_debeziumConnectors(connector_url)
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/stop/")
 def stop_producer(producer_id: str):
     """
@@ -43,14 +57,13 @@ def stop_producer(producer_id: str):
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/list/")
-def list_producers():
+@router.post("/stop/Debezium/")
+def stop_debeziumConnector(connector_name: str):
     """
-    Lists all active Kafka producers.
+    Stops the debezium conn ector identified by connector_name.
     """
     try:
-        response = producer_service.list_producers()
+        response = producer_service.stop_debeziumConnector(connector_name)
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

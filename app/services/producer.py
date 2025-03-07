@@ -108,8 +108,50 @@ class KafkaProducerService:
                 return {"error": f"Request failed: {str(e)}"}
             except Exception as e:
                 return {"error": f"Unexpected error: {str(e)}"}
+    def list_debeziumConnectors(self, connector_url: str="http://host.docker.internal:8083/connectors"):
+        try:
+            # Ensure URL has protocol
+            if not connector_url.startswith(('http://', 'https://')):
+                connector_url = f"http://{connector_url}"
+                
+            # Get list of Debezium connectors
+            response = httpx.get(
+                connector_url,
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+                timeout=5.0
+            )
+            response.raise_for_status()
 
+            # Return the JSON response directly since it contains the list of connectors
+            return {"result": response.json()}
 
+        except httpx.HTTPStatusError as e:
+            return {"error": f"HTTP error occurred: {e.response.text}"}
+        except httpx.RequestError as e:
+            return {"error": f"Request failed: {str(e)}"}
+        except Exception as e:
+            return {"error": f"Unexpected error: {str(e)}"}
+    def stop_debeziumConnector(self, connector_url: str="http://host.docker.internal:8083/connectors", connector_name: str= ""):
+        try:
+            # Stop the Debezium connector
+            if not connector_url.startswith(('http://', 'https://')):
+                connector_url = f"http://{connector_url}"   
+            stop_url = f"{connector_url}/{connector_name}/stop"
+            stop_response = httpx.post(
+                stop_url,   
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+                timeout=5.0
+            )
+            stop_response.raise_for_status()
+
+            return {"result": f"Connector '{connector_name}' stopped successfully."}    
+        except httpx.HTTPStatusError as e:
+            return {"error": f"HTTP error occurred: {e.response.text}"}
+        except httpx.RequestError as e:
+            return {"error": f"Request failed: {str(e)}"}
+        except Exception as e:
+            return {"error": f"Unexpected error: {str(e)}"}
+   
     def stop_producer(self, producer_id: str):
         """Stops the Kafka producer with the given producer_id."""
         if producer_id not in self.producers or not self.producers[producer_id]['running']:
