@@ -1,54 +1,46 @@
-import threading
+from pydantic import BaseModel
 from confluent_kafka import Consumer, KafkaError
-from .job import JobService
+import threading
+import logging
+from functools import wraps
+from typing import Optional
+from pydantic import BaseModel
+from typing import Optional
+
+class ConsumerCreationRequest(BaseModel):
+    consumer_id: str
+    kafka_topic: str
+    connection_id: str
+    job_type: str
+    auto_offset_reset: Optional[str] = "earliest"  # Defaulting to "earliest"
+
+# Exception Handling Decorator
+def handle_exceptions(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logging.error(f"Error in {func.__name__}: {e}")
+            return {"message": f"An error occurred while processing the request: {str(e)}"}
+    return wrapper
+
+# Pydantic Model for Consumer Creation
+class ConsumerCreationRequest(BaseModel):
+    consumer_id: str
+    kafka_topic: str
+    connection_id: str
+    job_type: str
+    auto_offset_reset: Optional[str] = "earliest"  # Defaulting to "earliest"
 
 class KafkaConsumerService:
     def __init__(self, kafka_broker: str, job_service: JobService):
         self.kafka_broker = kafka_broker
         self.job_service = job_service
         self.consumers = {}
-        self.consumers_lock = threading.Lock()  # Lock to protect shared data
+        self.consumers_lock = threading.Lock()
 
-    def consume_messages(self, consumer_id: str, kafka_topic: str, connection_id: str, job_type: str):
-        with self.consumers_lock:
-            consumer = self.consumers[consumer_id]['consumer']
-        consumer.subscribe([kafka_topic])
-        print(f"✅ Kafka consumer '{consumer_id}' started for topic: {kafka_topic}")
-
-        try:
-            while True:
-                with self.consumers_lock:
-                    running = self.consumers.get(consumer_id, {}).get('running', False)
-                if not running:
-                    break
-
-                msg = consumer.poll(timeout=1.0)
-                if msg is None:
-                    continue
-
-                if msg.error():
-                    if msg.error().code() == KafkaError._PARTITION_EOF:
-                        print(f"🔚 End of partition reached: {msg.partition()}")
-                    else:
-                        print(f"❌ Error consuming message: {msg.error()}")
-                else:
-                    self.process_message(msg, connection_id, job_type)
-        except Exception as e:
-            print(f"❌ Exception in consumer loop: {e}")
-        finally:
-            consumer.close()
-            print(f"❌ Kafka consumer '{consumer_id}' stopped.")
-
-    def process_message(self, msg, connection_id, job_type):
-        try:
-            # Decode the message assuming it is a UTF-8 encoded string.
-            message = msg.value().decode('utf-8')
-            print(f"✅ Received message: {message}")
-            sync_response = self.job_service.start_job(connection_id=connection_id, job_type=job_type)
-            print(f"🔄 Airbyte sync triggered: {sync_response}")
-        except Exception as e:
-            print(f"❌ Error processing message: {e}")
-
+    @handle_exceptions
     def start_consumer(self, consumer_id: str, kafka_topic: str, connection_id: str, job_type: str):
         with self.consumers_lock:
             if consumer_id in self.consumers:
@@ -59,10 +51,8 @@ class KafkaConsumerService:
                 'group.id': f'{consumer_id}-group',
                 'auto.offset.reset': 'earliest'
             })
-            # Register the consumer as running.
-            self.consumers[consumer_id] = {'consumer': consumer, 'running': True}
+            self.consumers[consumer_id] = {'consumer': consumer, 'running': True, 'topic': kafka_topic}
 
-            # Create and start the consumer thread.
             thread = threading.Thread(
                 target=self.consume_messages, 
                 args=(consumer_id, kafka_topic, connection_id, job_type),
@@ -73,24 +63,31 @@ class KafkaConsumerService:
 
         return {"message": f"Started consumer with ID '{consumer_id}' for Kafka topic '{kafka_topic}'."}
 
-    def stop_consumer(self, consumer_id: str):
+    def get_consumer_info(self, consumer_id: str):
         with self.consumers_lock:
-            if consumer_id not in self.consumers:
-                return {"message": f"Consumer with ID '{consumer_id}' is not running."}
-            # Signal the consumer loop to stop.
-            self.consumers[consumer_id]['running'] = False
-            thread = self.consumers[consumer_id]['thread']
+            consumer_info = self.consumers.get(consumer_id)
 
-        # Wait for the consumer thread to exit.
-        thread.join()
+        if not consumer_info:
+            return {"message": f"Consumer with ID '{consumer_id}' is not running."}
 
-        with self.consumers_lock:
-            # Remove the consumer from the registry.
-            del self.consumers[consumer_id]
+        consumer = consumer_info.get('consumer')
+        topic = consumer_info.get('topic')
+        running = consumer_info.get('running')
 
-        return {"message": f"Consumer with ID '{consumer_id}' stopped successfully."}
+        topic_partitions = consumer.assignment()
+        offset_info = {}
+        for partition in topic_partitions:
+            offset_info[partition] = consumer.position(partition)
 
-    def list_consumers(self):
-        with self.consumers_lock:
-            active_consumers = [cid for cid, info in self.consumers.items() if info.get('running', False)]
-        return {"active_consumers": active_consumers}
+        consumer_group = consumer.config.get('group.id')
+        
+        return {
+            "consumer_id": consumer_id,
+            "topic": topic,
+            "group_id": consumer_group,
+            "running": running,
+            "thread": "running" if running else "stopped",
+            "offsets": offset_info,
+            "poll_timeout": consumer.config.get('fetch.wait.max.ms', 'not set'),
+            "consumer_info": str(consumer),
+        }
