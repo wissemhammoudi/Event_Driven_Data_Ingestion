@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     PASSWORD: str
     KAFKA_BROKER: str
     URL: str
-    
+    DEBEZIUM_CONNECTOR_URL: str
     class Config:
         # Specify the path to your .env file
         env_file = "./core/.env"

@@ -1,66 +1,28 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from services.debezium import DebeziumService
 from model.debezium import DebeziumConnectorPayload
 
-router = APIRouter(prefix="/Debezium", tags=["Debezium"])
+router = APIRouter(prefix="/debezium", tags=["Debezium"])
 
 # Initialize the DebeziumService
-producer_service = DebeziumService()
+debezium_service = DebeziumService()
 
-@router.post("/startdebezium/")
-def start_producer(connector_url: str = "http://host.docker.internal:8083/connectors", connector_payload: DebeziumConnectorPayload = None):
-    """
-    Starts a new Kafka producer.
-
-    - **connector_url**: The URL for the connector API.
-    - **connector_payload**: The JSON payload to create the connector.
-    """
-    try:
-        response = producer_service.start_producer_debezium(connector_url=connector_url, connector_payload=connector_payload)
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@router.post("/start/", status_code=201)
+def start_producer(connector_payload: DebeziumConnectorPayload):
+    """Starts a new Debezium connector."""
+    return debezium_service.start_producer_debezium(connector_payload=connector_payload)
 
 @router.get("/list/")
-def list_debezium_connectors(connector_url: str = "http://host.docker.internal:8083/connectors"):
-    """
-    Lists all active Debezium connectors.
-    
-    - **connector_url**: Base URL for the connector API.
-    """
-    try:
-        if not connector_url.startswith(('http://', 'https://')):
-            connector_url = f"http://{connector_url}"
+def list_debezium_connectors():
+    """Lists all active Debezium connectors."""
+    return debezium_service.list_debezium_connectors()
 
-        response = producer_service.list_debezium_connectors(connector_url)
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@router.get("/connector/{connector_name}/info/")
+def get_connector_info(connector_name: str):
+    """Fetches information about a specific Debezium connector."""
+    return debezium_service.get_debezium_connector_info(connector_name=connector_name)
 
-@router.get("/connector/info/")
-def get_connector_info(connector_url: str = "http://host.docker.internal:8083/connectors", connector_name: str = ""):
-    """
-    Fetches information about a specific Debezium connector.
-
-    - **connector_url**: Base URL for the connector API.
-    - **connector_name**: Name of the connector.
-    """
-    try:
-        response = producer_service.get_debezium_connector_info(connector_url=connector_url, connector_name=connector_name)
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.delete("/connector/stop/")
-def stop_connector(connector_url: str = "http://host.docker.internal:8083/connectors", connector_name: str = ""):
-    """
-    Stops a specific Debezium connector.
-
-    - **connector_url**: Base URL for the connector API.
-    - **connector_name**: Name of the connector to stop.
-    """
-    try:
-        response = producer_service.delete_debezium_connector(connector_url=connector_url, connector_name=connector_name)
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@router.delete("/connector/{connector_name}/delete/", status_code=204)
+def stop_connector(connector_name: str):
+    """Stops a specific Debezium connector."""
+    return debezium_service.delete_debezium_connector(connector_name=connector_name)

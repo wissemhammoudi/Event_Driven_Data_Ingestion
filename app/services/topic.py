@@ -6,8 +6,6 @@ from functools import wraps
 from model.topic import CreateTopicRequest,UpdateTopicRequest
 
 
-# Initialize FastAPI app
-app = FastAPI()
 
 # Decorator for error handling
 def handle_kafka_errors(func):

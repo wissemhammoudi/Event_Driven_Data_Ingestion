@@ -1,19 +1,18 @@
 {
-    "name": "my-postgres-connector",
-    "config": {
-      "connector_class": "io.debezium.connector.postgresql.PostgresConnector",
-      "tasks_max": "10",
-      "database_hostname": "postgres",
-      "database_port": "5432",
-      "database_user": "debezium",
-      "database_password": "password",
-      "database_dbname": "mydatabase",
-        "topic_prefix": "dbserver1",
-          "schema_include.list": "public",
-      "publication_autocreate.mode": "filtered",
-      "table_include_list": "public.choices, public.topics, public.payments",
-      "plugin_name": "pgoutput",
-      "snapshot_mode": "initial"
-    }
+  "name": "my-postgres-connector",
+  "config": {
+    "connector_class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks_max": "10",
+    "database_hostname": "postgres",
+    "database_port": "5432",
+    "database_user": "debezium",
+    "database_password": "password",
+    "database_dbname": "mydatabase",
+      "topic_prefix": "dbserver1",
+        "schema_include_list": "public",
+    "publication_autocreate_mode": "filtered",
+    "table_include_list": "public.choices, public.topics, public.payments",
+    "plugin_name": "pgoutput",
+    "snapshot_mode": "initial"
   }
-  
+}
